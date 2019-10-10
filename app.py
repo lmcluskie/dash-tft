@@ -53,68 +53,7 @@ external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
 app.title=tabtitle
-
-options = [html.Div([
-        html.H5([
-                'Search Scenarios'
-                ],
-                style={
-                    'textAlign':'center',
-                    'color': colors['text']
-                }
-            ),        
-        dash_table.DataTable(
-            id='search-input-table',
-            columns=(
-                [{'name': 'Scenario',
-                  'id': 'Scenario', 
-                  'type': 'numeric', 
-                  'editable': False}
-                ] +
-                [{'name': f'{i}', 
-                  'id': f'{i}',
-                  'type': 'numeric',
-                  'presentation':'input'}
-                for i in static_columns+var_columns
-                ]
-            ),
-            data=[
-                {'Scenario':i, **{static_columns[-j]: i+j-1 for j in range(3,0,-1)}, 
-                **{column: 0 for column in var_columns}}
-                for i in range(1, 4)
-            ],
-            editable=True,
-            style_as_list_view=True,
-            style_header={
-                'fontWeight': 'bold'
-            },
-            style_cell={
-                'backgroundColor': colors['paper'],
-                'color': colors['text'],
-                'textAlign':'center',
-            }
-        )
-        ],
-        style={
-            'backgroundColor':colors['paper']       
-        }
-    )
-]
             
-display = [
-    dcc.Graph(
-        id='search-graph',
-        style={
-            'height':'500px',
-            'padding-bottom': '20px',
-            'backgroundColor':colors['paper']
-        },
-        config={
-            'displayModeBar': False
-        }
-    )
-]
-
 #app
 app.layout = html.Div([
         html.H1([
@@ -126,28 +65,80 @@ app.layout = html.Div([
                 'padding-top': '20px'
             }
         ),
-        html.Div(
-            className='row no-pad',
-            children=[
-                html.Div(
-                    className='four columns',
-                    children=options,
-                    style={
-                        'padding-left':'20px'
-                    }
+        html.H5([
+                'Input Scenario Parameters:'
+                ],
+                style={
+                    'textAlign':'center',
+                    'color': colors['text']
+                }
+            ),
+        html.Div([
+                dash_table.DataTable(
+                    id='search-input-table',
+                    columns=(
+                        [{'name': 'Scenario',
+                          'id': 'Scenario', 
+                          'type': 'numeric', 
+                          'editable': False}
+                        ] +
+                        [{'name': f'{i}', 
+                          'id': f'{i}',
+                          'type': 'numeric',
+                          'presentation':'input'}
+                        for i in static_columns+var_columns
+                        ]
+                    ),
+                    data=[
+                        {'Scenario':i, **{static_columns[-j]: i+j-1 for j in range(3,0,-1)}, 
+                        **{column: 0 for column in var_columns}}
+                        for i in range(1, 4)
+                    ],
+                    editable=True,
+                    style_as_list_view=True,
+                    style_header={
+                        'fontWeight': 'bold'
+                    },
+                    style_cell={
+                        'backgroundColor': colors['paper'],
+                        'color': colors['text'],
+                        'textAlign':'center'
+                    },
+                    css=[
+                        { 'selector': 'td.cell--selected, td.focused', 'rule': 'background-color: #1A2C38 !important;'},
+                        { 'selector': 'td.cell--selected *, td.focused *', 'rule': 'color: #FFFFFF !important;'}
+                    ]
                 ),
-                html.Div(
-                    className='eight columns',
-                    children=display,
-                    style={
-                        'padding-right':'20px'
-                    }
-                )
-            ]
+            ],
+            style={
+                'width':'50%',
+                'display': 'inline-block',
+                'padding-bottom':'20px'
+            }
         ),
+        html.Div([
+                dcc.Graph(
+                    id='search-graph',
+                    style={
+                        'height':'500px',
+                        'padding-bottom': '20px',
+                        'backgroundColor':colors['paper']
+                    },
+                    config={
+                        'displayModeBar': False
+                    }
+                )    
+            ],
+            style={
+                'width':'60%',
+                'display': 'inline-block'
+            }
+        ),
+        
     ],
     style={
-        'backgroundColor':colors['background']
+        'backgroundColor':colors['background'],
+        'textAlign': 'center'
     }
 )
             
@@ -198,7 +189,7 @@ def update_graph(rows, columns):
         ],
         'layout': go.Layout(
             title=(
-                f'Chance of objective being completed vs Rolls ' 
+                f'Prob(Objective completed) vs Rolls ' 
             ),
             titlefont={
                 'color':colors['title']
@@ -226,7 +217,7 @@ def update_graph(rows, columns):
             },
             legend={
                 'orientation':'h', 
-                'y':1.08,
+                'y':1.1,
                 'x':0
             },                   
             font={
