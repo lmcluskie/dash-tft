@@ -2,226 +2,303 @@ import dash
 import dash_table
 import dash_core_components as dcc
 import dash_html_components as html
+import dash_daq as daq
 from dash.dependencies import Input, Output
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
 
-#setup
+# setup
 colors = {
-    'background':'#1D313F',
+    'background': '#1D313F',
     'paper': '#192A35',
-    'text':'#D6D6D6',
-    'title':'#FFFFFF'
+    'text': '#D6D6D6',
+    'title': '#FFFFFF',
+    'cells': '#3D4770'
 }
-line_colors = ['#006DDB', '#D16C00', '#E076D5']
+line_colors = ['#47D0E8', '#EF9A45', '#8DF279', '#006DDB', '#D16C00', '#477A3D']
 static_columns = ['Level', 'Tier', 'Goal Copies']
 var_columns = ['Champ Owned', 'Tier Owned']
 levels = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 tiers = [1, 2, 3, 4, 5]
 uniques = [13, 13, 13, 10, 8]
 copies = [39, 26, 18, 13, 10]
-weights = [[100,0,0,0,0],[100,0,0,0,0],[65,30,5,0,0],
-            [50,35,15,0,0],[37,35,25,3,0],[24.5,35,30,10,0.5],
-            [20,30,33,15,2],[15,20,35,22,8],[10,15,30,30,15]]
+weights = {
+    '920':
+        [[100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [70, 25, 5, 0, 0],
+         [50, 35, 15, 0, 0], [35, 35, 25, 5, 0], [25, 35, 30, 10, 0],
+         [20, 30, 33, 15, 2], [15, 20, 35, 22, 8], [10, 15, 30, 30, 15]],
+    '919':
+        [[100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [70, 25, 5, 0, 0],
+         [50, 35, 15, 0, 0], [35, 35, 25, 5, 0], [25, 35, 30, 10, 0],
+         [20, 30, 33, 15, 2], [15, 25, 35, 20, 5], [10, 15, 33, 30, 12]]
+}
 
-def calculate_final_state(level, tier, goal, c_owned, t_owned, rolls):
+
+def calculate_final_state(level, tier, goal, c_owned, t_owned, rolls, patch):
     """Take in a scenario to produce the final state vector"""
-    #intial state vector
-    start = np.zeros((1,goal+1))
-    start[0,0] = 1
-    #transition matrix on each slot
-    m = np.zeros((goal+1,goal+1))
-    for i in range(goal):
-        if copies[tier-1]-c_owned-i > 0:
-            prob = weights[level-1][tier-1]/100*(copies[tier-1]-c_owned-i)/(copies[tier-1]*uniques[tier-1]-t_owned-i)
-        else:
-            prob = 0
-        m[i,i] = 1-prob
-        m[i,i+1] = prob
-    m[goal,goal] = 1
-    #full transition matrix
-    full_transition_matrix = np.linalg.matrix_power(m, rolls*5)
-    #final state vector based on inital state and transition matrix
-    final = np.matmul(start, full_transition_matrix)
-    return final[0,-1]
+    try:
+        # initial state vector
+        start = np.zeros((1, goal + 1))
+        start[0, 0] = 1
+        # transition matrix on each slot
+        m = np.zeros((goal + 1, goal + 1))
+        base_prob = weights[patch][level - 1][tier - 1] / 100
+        for i in range(goal):
+            if copies[tier - 1] - c_owned > i:
+                prob = base_prob * (copies[tier - 1] - c_owned - i) / (
+                            copies[tier - 1] * uniques[tier - 1] - t_owned - i)
+            else:
+                prob = 0
+            m[i, i] = 1 - prob
+            m[i, i + 1] = prob
+        m[goal, goal] = 1
+        # full transition matrix
+        full_transition_matrix = np.linalg.matrix_power(m, rolls * 5)
+        # final state vector based on inital state and transition matrix
+        final = np.matmul(start, full_transition_matrix)
+        return final[0, -1]
+    except TypeError:
+        return 0
 
-tabtitle='TFT Search Odds'
 
-#initiate
+# initiate
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
-server = app.server
-app.title=tabtitle
-            
-#app
+app.title = 'TFT Search Odds (9.20)'
+
+# app
 app.layout = html.Div([
-        html.H1([
-            'TFT Search Odds'
-            ],
-            style={
-                'textAlign':'center',
-                'color': colors['title'],
-                'padding-top': '20px'
-            }
-        ),
-        html.H5([
-                'Input Scenario Parameters:'
-                ],
-                style={
-                    'textAlign':'center',
-                    'color': colors['text']
-                }
-            ),
-        html.Div([
-                dash_table.DataTable(
-                    id='search-input-table',
-                    columns=(
-                        [{'name': 'Scenario',
-                          'id': 'Scenario', 
-                          'type': 'numeric', 
-                          'editable': False}
-                        ] +
-                        [{'name': f'{i}', 
-                          'id': f'{i}',
-                          'type': 'numeric',
-                          'presentation':'input'}
-                        for i in static_columns+var_columns
-                        ]
-                    ),
-                    data=[
-                        {'Scenario':i, **{static_columns[-j]: i+j-1 for j in range(3,0,-1)}, 
-                        **{column: 0 for column in var_columns}}
-                        for i in range(1, 4)
-                    ],
-                    editable=True,
-                    style_as_list_view=True,
-                    style_header={
-                        'fontWeight': 'bold'
-                    },
-                    style_cell={
-                        'backgroundColor': colors['paper'],
-                        'color': colors['text'],
-                        'textAlign':'center'
-                    },
-                    css=[
-                        { 'selector': 'td.cell--selected, td.focused', 'rule': 'background-color: #1A2C38 !important;'},
-                        { 'selector': 'td.cell--selected *, td.focused *', 'rule': 'color: #FFFFFF !important;'}
-                    ]
-                ),
-            ],
-            style={
-                'width':'50%',
-                'display': 'inline-block',
-                'padding-bottom':'20px'
-            }
-        ),
-        html.Div([
-                dcc.Graph(
-                    id='search-graph',
-                    style={
-                        'height':'500px',
-                        'padding-bottom': '20px',
-                        'backgroundColor':colors['paper']
-                    },
-                    config={
-                        'displayModeBar': False
-                    }
-                )    
-            ],
-            style={
-                'width':'60%',
-                'display': 'inline-block'
-            }
-        ),
-        
+    html.H1([
+        'TFT Search Odds'
     ],
+        style={
+            'textAlign': 'center',
+            'color': colors['title'],
+            'padding-top': '20px'
+        }
+    ),
+
+    html.Div([
+            daq.ToggleSwitch(
+                id='comparison-toggle',
+                label='Compare to Patch 9.19',
+                labelPosition='top',
+                color=colors['cells']
+            )
+        ],
+        style={
+            'width': '60%',
+            'display': 'inline-block',
+            'color': colors['text']
+        }
+    ),
+
+    html.Div([
+        dash_table.DataTable(
+            id='search-input-table',
+            columns=[
+                {'name': 'Scenario',
+                 'id': 'Scenario',
+                 'type': 'numeric',
+                 'editable': False}
+            ] + [
+                {'name': f'{i}',
+                 'id': f'{i}',
+                 'type': 'numeric',
+                 'presentation': 'input'}
+                for i in static_columns + var_columns
+            ],
+            data=[
+                {'Scenario': i, **{static_columns[-j]: i + j - 1 for j in range(3, 0, -1)},
+                 **{column: 0 for column in var_columns}}
+                for i in range(1, 4)
+            ],
+            editable=True,
+            style_as_list_view=True,
+            style_header={
+                'backgroundColor': colors['paper'],
+                'fontWeight': 'bold'
+            },
+            style_data_conditional=[{
+                'if': {'column_id': 'Scenario'},
+                'fontWeight': 'bold',
+                'backgroundColor': colors['paper']
+            }],
+            style_cell={
+                'backgroundColor': colors['cells'],
+                'color': colors['text'],
+                'textAlign': 'center'
+            },
+            css=[
+                {'selector': 'td.cell--selected, td.focused', 'rule': 'background-color: #55639B !important;'},
+                {'selector': 'td.cell--selected *, td.focused *', 'rule': 'color: #FFFFFF !important;'}
+            ]
+        ),
+    ],
+        style={
+            'width': '60%',
+            'display': 'inline-block',
+            'padding-bottom': '20px'
+        }
+    ),
+
+    html.Div([
+            dcc.Graph(
+                id='search-graph',
+                style={
+                    'height': '500px',
+                    'padding-bottom': '20px',
+                    'backgroundColor': colors['paper']
+                },
+                config={
+                    'displayModeBar': False
+                }
+            )
+        ],
+        style={
+            'width': '60%',
+            'display': 'inline-block'
+        }
+    ),
+
+],
     style={
-        'backgroundColor':colors['background'],
+        'backgroundColor': colors['background'],
         'textAlign': 'center'
     }
 )
-            
+
+
 @app.callback(
     Output('search-graph', 'figure'),
     [Input('search-input-table', 'data'),
-    Input('search-input-table', 'columns')])      
-def update_graph(rows, columns): 
+     Input('search-input-table', 'columns'),
+     Input('comparison-toggle', 'value')]
+)
+def update_graph(rows, columns, compare):
     df = pd.DataFrame(rows, columns=[c['name'] for c in columns])
-    scenario = {'1':[], '2':[], '3':[]}
+    lines = {
+        'scenario920': {'1': [], '2': [], '3': []},
+        'scenario919': {'1': [], '2': [], '3': []}
+    }
     for scen in range(3):
-        for i in range(0,101):        
-            scenario[f'{scen+1}'].append(
-                calculate_final_state(
-                    df.Level[scen], df.Tier[scen], df['Goal Copies'][scen],
-                    df['Champ Owned'][scen], df['Tier Owned'][scen], i
+        try:
+            for i in range(0, 101):
+                lines['scenario920'][f'{scen + 1}'].append(
+                    calculate_final_state(
+                        df.Level[scen], df.Tier[scen], df['Goal Copies'][scen],
+                        df['Champ Owned'][scen], df['Tier Owned'][scen], i, '920'
+                    )
                 )
-            )
+        except IndexError:
+            lines['scenario920'][f'{scen + 1}'] = [0] * 100
+    if compare == True:
+        for scen in range(3):
+            try:
+                for i in range(0, 101):
+                    lines['scenario919'][f'{scen + 1}'].append(
+                        calculate_final_state(
+                            df.Level[scen], df.Tier[scen], df['Goal Copies'][scen],
+                            df['Champ Owned'][scen], df['Tier Owned'][scen], i, '919'
+                        )
+                    )
+            except IndexError:
+                lines['scenario919'][f'{scen + 1}'] = [0] * 100
     return {
         'data': [
             go.Scatter(
                 x=list(range(101)),
-                y=scenario['1'], 
+                y=lines['scenario919']['1'],
                 mode='lines',
                 line={
-                    'color':line_colors[0]
+                    'color': line_colors[3]
                 },
-                name='Scenario 1'
+                name='9.19 1'
             ),
             go.Scatter(
                 x=list(range(101)),
-                y=scenario['2'], 
+                y=lines['scenario919']['2'],
                 mode='lines',
                 line={
-                    'color':line_colors[1]
+                    'color': line_colors[4]
                 },
-                name='Scenario 2'
+                name='9.19 2'
             ),
             go.Scatter(
                 x=list(range(101)),
-                y=scenario['3'], 
+                y=lines['scenario919']['3'],
                 mode='lines',
                 line={
-                    'color':line_colors[2]
+                    'color': line_colors[5]
                 },
-                name='Scenario 3'
+                name='9.19 3'
+            ),
+            go.Scatter(
+                x=list(range(101)),
+                y=lines['scenario920']['1'],
+                mode='lines',
+                line={
+                    'color': line_colors[0]
+                },
+                name='1'
+            ),
+            go.Scatter(
+                x=list(range(101)),
+                y=lines['scenario920']['2'],
+                mode='lines',
+                line={
+                    'color': line_colors[1]
+                },
+                name='2'
+            ),
+            go.Scatter(
+                x=list(range(101)),
+                y=lines['scenario920']['3'],
+                mode='lines',
+                line={
+                    'color': line_colors[2]
+                },
+                name='3'
             )
         ],
         'layout': go.Layout(
             title=(
-                f'Prob(Objective completed) vs Rolls ' 
+                f'Prob(Objective completed) vs Rolls '
             ),
             titlefont={
-                'color':colors['title']
+                'color': colors['title']
             },
             xaxis={
-                'title':'Rolls',
-                'showline':True,
-                'linewidth':2, 
-                'linecolor':colors['text'],
-                'showgrid':True,
-                'gridwidth':1,
-                'gridcolor':colors['text'],
-                'range':[0,100]
+                'title': 'Rolls',
+                'showline': True,
+                'linewidth': 2,
+                'linecolor': colors['text'],
+                'showgrid': True,
+                'gridwidth': 1,
+                'gridcolor': colors['text'],
+                'range': [0, 100],
+                'fixedrange': True
             },
             yaxis={
-                'title':'Probability of objective completed',
-                'showline':True,
-                'linewidth':2, 
-                'linecolor':colors['text'],
-                'showgrid':True,
-                'gridwidth':1,
-                'gridcolor':colors['text'],
-                'range':[0,1],
-                'hoverformat':'.2f'
+                'title': 'Probability of objective completed',
+                'showline': True,
+                'linewidth': 2,
+                'linecolor': colors['text'],
+                'showgrid': True,
+                'gridwidth': 1,
+                'gridcolor': colors['text'],
+                'range': [0, 1],
+                'hoverformat': '.2f',
+                'fixedrange': True
             },
             legend={
-                'orientation':'h', 
-                'y':1.1,
-                'x':0
-            },                   
+                'orientation': 'h',
+                'y': 1.1,
+                'x': 0
+            },
             font={
-                'color':colors['text']
+                'color': colors['text']
             },
             margin=go.layout.Margin(
                 l=80,
@@ -235,5 +312,6 @@ def update_graph(rows, columns):
         )
     }
 
+
 if __name__ == '__main__':
-    app.run_server()
+    app.run_server(debug=True)
