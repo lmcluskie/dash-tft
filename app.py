@@ -36,7 +36,7 @@ weights = {
 
 
 def calculate_final_state(level, tier, goal, c_owned, t_owned, rolls, patch):
-    """Take in a scenario to produce the final state vector"""
+    """Take in scenario parameters to produce the final state vector"""
     try:
         # initial state vector
         start = np.zeros((1, goal + 1))
@@ -182,29 +182,29 @@ def update_graph(rows, columns, compare):
         'scenario920': {'1': [], '2': [], '3': []},
         'scenario919': {'1': [], '2': [], '3': []}
     }
-    for scen in range(3):
+    for scenario in range(3):
         try:
             for i in range(0, 101):
-                lines['scenario920'][f'{scen + 1}'].append(
+                lines['scenario920'][f'{scenario + 1}'].append(
                     calculate_final_state(
-                        df.Level[scen], df.Tier[scen], df['Goal Copies'][scen],
-                        df['Champ Owned'][scen], df['Tier Owned'][scen], i, '920'
+                        df.Level[scenario], df.Tier[scenario], df['Goal Copies'][scenario],
+                        df['Champ Owned'][scenario], df['Tier Owned'][scenario], i, '920'
                     )
                 )
         except IndexError:
-            lines['scenario920'][f'{scen + 1}'] = [0] * 100
-    if compare == True:
-        for scen in range(3):
+            lines['scenario920'][f'{scenario + 1}'] = [0] * 100
+    if compare:
+        for scenario in range(3):
             try:
                 for i in range(0, 101):
-                    lines['scenario919'][f'{scen + 1}'].append(
+                    lines['scenario919'][f'{scenario + 1}'].append(
                         calculate_final_state(
-                            df.Level[scen], df.Tier[scen], df['Goal Copies'][scen],
-                            df['Champ Owned'][scen], df['Tier Owned'][scen], i, '919'
+                            df.Level[scenario], df.Tier[scenario], df['Goal Copies'][scenario],
+                            df['Champ Owned'][scenario], df['Tier Owned'][scenario], i, '919'
                         )
                     )
             except IndexError:
-                lines['scenario919'][f'{scen + 1}'] = [0] * 100
+                lines['scenario919'][f'{scenario + 1}'] = [0] * 100
     return {
         'data': [
             go.Scatter(
@@ -314,4 +314,4 @@ def update_graph(rows, columns, compare):
 
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server()
