@@ -74,6 +74,7 @@ app.layout = html.Div([
         'TFT Search Odds'
     ],
         style={
+            'fontFamily': 'Bodoni',
             'textAlign': 'center',
             'color': colors['title'],
             'padding-top': '20px'
@@ -89,6 +90,7 @@ app.layout = html.Div([
             )
         ],
         style={
+            'fontFamily': 'Garamond',
             'width': '60%',
             'display': 'inline-block',
             'color': colors['text']
@@ -111,9 +113,9 @@ app.layout = html.Div([
                 for i in static_columns + var_columns
             ],
             data=[
-                {'Scenario': i, **{static_columns[-j]: i + j - 1 for j in range(3, 0, -1)},
-                 **{column: 0 for column in var_columns}}
-                for i in range(1, 4)
+                {'Scenario': 'A', 'Level': 8, 'Tier': 5, 'Goal Copies': 3,'Champ Owned': 0, 'Tier Owned': 11},
+                {'Scenario': 'B', 'Level': 8, 'Tier': 5, 'Goal Copies': 3,'Champ Owned': 4, 'Tier Owned': 11},
+                {'Scenario': 'C', 'Level': 9, 'Tier': 5, 'Goal Copies': 3,'Champ Owned': 4, 'Tier Owned': 11}
             ],
             editable=True,
             style_as_list_view=True,
@@ -127,6 +129,7 @@ app.layout = html.Div([
                 'backgroundColor': colors['paper']
             }],
             style_cell={
+                'fontFamily': 'Garamond',
                 'backgroundColor': colors['cells'],
                 'color': colors['text'],
                 'textAlign': 'center'
@@ -215,7 +218,7 @@ def update_graph(rows, columns, compare):
                 line={
                     'color': line_colors[3]
                 },
-                name='9.19 1'
+                name='9.19 A'
             ),
             go.Scatter(
                 x=list(range(101)),
@@ -224,7 +227,7 @@ def update_graph(rows, columns, compare):
                 line={
                     'color': line_colors[4]
                 },
-                name='9.19 2'
+                name='9.19 B'
             ),
             go.Scatter(
                 x=list(range(101)),
@@ -233,7 +236,7 @@ def update_graph(rows, columns, compare):
                 line={
                     'color': line_colors[5]
                 },
-                name='9.19 3'
+                name='9.19 C'
             ),
             go.Scatter(
                 x=list(range(101)),
@@ -242,7 +245,7 @@ def update_graph(rows, columns, compare):
                 line={
                     'color': line_colors[0]
                 },
-                name='1'
+                name='A'
             ),
             go.Scatter(
                 x=list(range(101)),
@@ -251,7 +254,7 @@ def update_graph(rows, columns, compare):
                 line={
                     'color': line_colors[1]
                 },
-                name='2'
+                name='B'
             ),
             go.Scatter(
                 x=list(range(101)),
@@ -260,7 +263,7 @@ def update_graph(rows, columns, compare):
                 line={
                     'color': line_colors[2]
                 },
-                name='3'
+                name='C'
             )
         ],
         'layout': go.Layout(
@@ -268,7 +271,8 @@ def update_graph(rows, columns, compare):
                 f'Prob(Objective completed) vs Rolls '
             ),
             titlefont={
-                'color': colors['title']
+                'color': colors['title'],
+                'family': 'Bodoni',
             },
             xaxis={
                 'title': 'Rolls',
@@ -299,7 +303,8 @@ def update_graph(rows, columns, compare):
                 'x': 0
             },
             font={
-                'color': colors['text']
+                'color': colors['text'],
+                'family': 'Garamond'
             },
             margin=go.layout.Margin(
                 l=80,
