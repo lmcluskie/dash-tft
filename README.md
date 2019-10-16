@@ -1,2 +1,2 @@
 # dash-tft
- TFT Calculator in app form
+ TFT Calculator as dash app

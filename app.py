@@ -65,6 +65,7 @@ def calculate_final_state(level, tier, goal, c_owned, t_owned, rolls, patch):
 # initiate
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
+server = app.server
 app.title = 'TFT Search Odds (9.20)'
 
 # app
