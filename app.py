@@ -17,8 +17,8 @@ colors = {
     'cells': '#3D4770'
 }
 line_colors = ['#47D0E8', '#EF9A45', '#8DF279', '#006DDB', '#D16C00', '#477A3D']
-static_columns = ['Level', 'Tier', 'Goal Copies']
-var_columns = ['Champ Owned', 'Tier Owned']
+static_columns = ['Level', 'Tier', 'Copies Wanted']
+var_columns = ['Champ Copies Owned', 'Tier Copies Owned']
 levels = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 tiers = [1, 2, 3, 4, 5]
 
@@ -76,8 +76,8 @@ def iterate_calculations(df, patch):
         try:
             for i in range(0, 101):
                 prob = calculate_final_state(
-                    df.Level[scenario], df.Tier[scenario], df['Goal Copies'][scenario],
-                    df['Champ Owned'][scenario], df['Tier Owned'][scenario], i, patch
+                    df.Level[scenario], df.Tier[scenario], df['Copies Wanted'][scenario],
+                    df['Champ Copies Owned'][scenario], df['Tier Copies Owned'][scenario], i, patch
                 )
                 probabilities[f'{scenario + 1}'].append(prob)
                 if not medians[f'{scenario + 1}']:
@@ -110,23 +110,6 @@ app.layout = html.Div([
         ),
 
         html.Div([
-                daq.ToggleSwitch(
-                    id='comparison-toggle',
-                    label='Compare to Patch 9.21 (Set 1)',
-                    labelPosition='top',
-                    color=colors['cells'],
-                    value=False
-                )
-            ],
-            style={
-                'fontFamily': 'Garamond',
-                'width': '60%',
-                'display': 'inline-block',
-                'color': colors['text']
-            }
-        ),
-
-        html.Div([
             dash_table.DataTable(
                 id='search-input-table',
                 columns=[
@@ -148,8 +131,12 @@ app.layout = html.Div([
                     for i in var_columns
                 ],
                 data=[
-                    {'Scenario': 'A', 'Level': 4, 'Tier': 1, 'Goal Copies': 6,'Champ Owned': 3, 'Tier Owned': 40},
-                    {'Scenario': 'B', 'Level': 4, 'Tier': 1, 'Goal Copies': 6,'Champ Owned': 12, 'Tier Owned': 40}
+                    {'Scenario': 'A', 'Level': 4, 'Tier': 1, 'Copies Wanted': 6,
+                     'Champ Copies Owned': 3, 'Tier Copies Owned': 40
+                     },
+                    {'Scenario': 'B', 'Level': 4, 'Tier': 1, 'Copies Wanted': 6,
+                     'Champ Copies Owned': 12, 'Tier Copies Owned': 40
+                    }
                 ],
                 dropdown={
                     'Level': {
@@ -164,7 +151,7 @@ app.layout = html.Div([
                             for i in range(1, 6)
                         ]
                     },
-                    'Goal Copies': {
+                    'Copies Wanted': {
                          'options': [
                             {'label': i, 'value': i}
                             for i in range(1, 10)
@@ -197,12 +184,30 @@ app.layout = html.Div([
             ),
         ],
             style={
-                'width': '50%',
+                'width': '800px',
                 'display': 'inline-block',
             }
         ),
+
+        html.Div([
+                daq.ToggleSwitch(
+                    id='comparison-toggle',
+                    label='Compare to Patch 9.21 (Set 1)',
+                    labelPosition='top',
+                    color=colors['cells'],
+                    value=False
+                )
+            ],
+            style={
+                'fontFamily': 'Garamond',
+                'width': '60%',
+                'display': 'inline-block',
+                'color': colors['text']
+            }
+        ),
+
         html.H6(
-            'Median Rolls Required (prob of success at 100 rolls if median>100)',
+            'Median Rolls Required (will display chance of success at 100 rolls if median>100)',
             style={
                 'fontFamily': 'Bodoni',
                 'textAlign': 'center',
@@ -232,7 +237,7 @@ app.layout = html.Div([
                 )
             ],
             style={
-                'width': '80%',
+                'width': '90%',
                 'display': 'inline-block'
             }
         ),
