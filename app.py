@@ -219,7 +219,7 @@ app.layout = html.Div([
         html.Div(
             id='median-table',
             style={
-                'width': '25%',
+                'width': '500px',
                 'display': 'inline-block',
             }
         ),
