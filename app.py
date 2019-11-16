@@ -21,17 +21,24 @@ static_columns = ['Level', 'Tier', 'Goal Copies']
 var_columns = ['Champ Owned', 'Tier Owned']
 levels = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 tiers = [1, 2, 3, 4, 5]
-uniques = [13, 13, 13, 10, 8]
-copies = [39, 26, 18, 13, 10]
+
+uniques = {
+    '922': [12, 12, 12, 9, 6],
+    '921': [13, 13, 13, 10, 8]
+}
+copies = {
+    '922': [29, 22, 16, 12, 10],
+    '921': [39, 26, 18, 13, 10]
+}
 weights = {
-    '920':
+    '922':
         [[100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [70, 25, 5, 0, 0],
          [50, 35, 15, 0, 0], [35, 35, 25, 5, 0], [25, 35, 30, 10, 0],
-         [20, 30, 33, 15, 2], [15, 20, 35, 22, 8], [10, 15, 30, 30, 15]],
-    '919':
+         [20, 30, 33, 15, 2], [15, 20, 35, 24, 6], [10, 15, 30, 30, 15]],
+    '921':
         [[100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [70, 25, 5, 0, 0],
          [50, 35, 15, 0, 0], [35, 35, 25, 5, 0], [25, 35, 30, 10, 0],
-         [20, 30, 33, 15, 2], [15, 25, 35, 20, 5], [10, 15, 33, 30, 12]]
+         [20, 30, 33, 15, 2], [15, 20, 35, 22, 8], [10, 15, 30, 30, 15]]
 }
 
 
@@ -45,9 +52,9 @@ def calculate_final_state(level, tier, goal, c_owned, t_owned, rolls, patch):
         m = np.zeros((goal + 1, goal + 1))
         base_prob = weights[patch][level - 1][tier - 1] / 100
         for i in range(goal):
-            if copies[tier - 1] - c_owned > i:
-                prob = base_prob * (copies[tier - 1] - c_owned - i) / (
-                            copies[tier - 1] * uniques[tier - 1] - t_owned - i)
+            if copies[patch][tier - 1] - c_owned > i:
+                prob = base_prob * (copies[patch][tier - 1] - c_owned - i) / (
+                            copies[patch][tier - 1] * uniques[patch][tier - 1] - t_owned - i)
             else:
                 prob = 0
             m[i, i] = 1 - prob
@@ -62,111 +69,174 @@ def calculate_final_state(level, tier, goal, c_owned, t_owned, rolls, patch):
         return 0
 
 
+def iterate_calculations(df, patch):
+    probabilities = {'1': [], '2': []}
+    medians = {'1': [], '2': []}
+    for scenario in range(2):
+        try:
+            for i in range(0, 101):
+                prob = calculate_final_state(
+                    df.Level[scenario], df.Tier[scenario], df['Goal Copies'][scenario],
+                    df['Champ Owned'][scenario], df['Tier Owned'][scenario], i, patch
+                )
+                probabilities[f'{scenario + 1}'].append(prob)
+                if not medians[f'{scenario + 1}']:
+                    if prob >= 0.5:
+                        medians[f'{scenario + 1}'] = i
+                    elif i == 100:
+                        medians[f'{scenario + 1}'] = f'{round(prob*100, 2)}%'
+        except IndexError:
+            probabilities[f'{scenario + 1}'] = [0] * 100
+    return probabilities, medians
+
+
 # initiate
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
-app.title = 'TFT Search Odds (9.20)'
+app.title = 'TFT Search Odds (9.22)'
 
 # app
 app.layout = html.Div([
-    html.H1([
-        'TFT Search Odds'
-    ],
-        style={
-            'fontFamily': 'Bodoni',
-            'textAlign': 'center',
-            'color': colors['title'],
-            'padding-top': '20px'
-        }
-    ),
-
-    html.Div([
-            daq.ToggleSwitch(
-                id='comparison-toggle',
-                label='Compare to Patch 9.19',
-                labelPosition='top',
-                color=colors['cells']
-            )
-        ],
-        style={
-            'fontFamily': 'Garamond',
-            'width': '60%',
-            'display': 'inline-block',
-            'color': colors['text']
-        }
-    ),
-
-    html.Div([
-        dash_table.DataTable(
-            id='search-input-table',
-            columns=[
-                {'name': 'Scenario',
-                 'id': 'Scenario',
-                 'type': 'numeric',
-                 'editable': False}
-            ] + [
-                {'name': f'{i}',
-                 'id': f'{i}',
-                 'type': 'numeric',
-                 'presentation': 'input'}
-                for i in static_columns + var_columns
+        html.H1([
+            'TFT Search Odds'
             ],
-            data=[
-                {'Scenario': 'A', 'Level': 8, 'Tier': 5, 'Goal Copies': 3,'Champ Owned': 0, 'Tier Owned': 11},
-                {'Scenario': 'B', 'Level': 8, 'Tier': 5, 'Goal Copies': 3,'Champ Owned': 4, 'Tier Owned': 11},
-                {'Scenario': 'C', 'Level': 9, 'Tier': 5, 'Goal Copies': 3,'Champ Owned': 4, 'Tier Owned': 11}
+            style={
+                'fontFamily': 'Bodoni',
+                'textAlign': 'center',
+                'color': colors['title'],
+                'padding-top': '20px'
+            }
+        ),
+
+        html.Div([
+                daq.ToggleSwitch(
+                    id='comparison-toggle',
+                    label='Compare to Patch 9.21 (Set 1)',
+                    labelPosition='top',
+                    color=colors['cells'],
+                    value=False
+                )
             ],
-            editable=True,
-            style_as_list_view=True,
-            style_header={
-                'backgroundColor': colors['paper'],
-                'fontWeight': 'bold'
-            },
-            style_data_conditional=[{
-                'if': {'column_id': 'Scenario'},
-                'fontWeight': 'bold',
-                'backgroundColor': colors['paper']
-            }],
-            style_cell={
+            style={
                 'fontFamily': 'Garamond',
-                'backgroundColor': colors['cells'],
-                'color': colors['text'],
-                'textAlign': 'center'
-            },
-            css=[
-                {'selector': 'td.cell--selected, td.focused', 'rule': 'background-color: #55639B !important;'},
-                {'selector': 'td.cell--selected *, td.focused *', 'rule': 'color: #FFFFFF !important;'}
-            ]
+                'width': '60%',
+                'display': 'inline-block',
+                'color': colors['text']
+            }
+        ),
+
+        html.Div([
+            dash_table.DataTable(
+                id='search-input-table',
+                columns=[
+                    {'name': 'Scenario',
+                     'id': 'Scenario',
+                     'type': 'numeric',
+                     'editable': False}
+                ] + [
+                    {'name': f'{i}',
+                     'id': f'{i}',
+                     'type': 'numeric',
+                     'presentation': 'dropdown'}
+                    for i in static_columns
+                ] + [
+                    {'name': f'{i}',
+                     'id': f'{i}',
+                     'type': 'numeric',
+                     'presentation': 'input'}
+                    for i in var_columns
+                ],
+                data=[
+                    {'Scenario': 'A', 'Level': 4, 'Tier': 1, 'Goal Copies': 6,'Champ Owned': 3, 'Tier Owned': 40},
+                    {'Scenario': 'B', 'Level': 4, 'Tier': 1, 'Goal Copies': 6,'Champ Owned': 12, 'Tier Owned': 40}
+                ],
+                dropdown={
+                    'Level': {
+                        'options': [
+                            {'label': i, 'value': i}
+                            for i in range(1, 10)
+                        ]
+                    },
+                    'Tier': {
+                         'options': [
+                            {'label': i, 'value': i}
+                            for i in range(1, 6)
+                        ]
+                    },
+                    'Goal Copies': {
+                         'options': [
+                            {'label': i, 'value': i}
+                            for i in range(1, 10)
+                        ]
+                    }
+                },
+                editable=True,
+                style_as_list_view=True,
+                style_header={
+                    'backgroundColor': colors['paper'],
+                    'fontWeight': 'bold',
+                    'color': colors['text']
+                },
+                style_data_conditional=[{
+                    'if': {'column_id': 'Scenario'},
+                    'fontWeight': 'bold',
+                    'backgroundColor': colors['paper'],
+                    'color': colors['text']
+                }],
+                style_cell={
+                    'fontFamily': 'Garamond',
+                    'backgroundColor': '#FFFFFF',
+                    'color': '#000000',
+                    'textAlign': 'center'
+                },
+                css=[
+                    {'selector': 'td.cell--selected, td.focused', 'rule': 'background-color: #FFFFFF !important;'},
+                    {'selector': 'td.cell--selected *, td.focused *', 'rule': 'color: #000000 !important;'}
+                ]
+            ),
+        ],
+            style={
+                'width': '50%',
+                'display': 'inline-block',
+            }
+        ),
+        html.H6(
+            'Median Rolls Required (prob of success at 100 rolls if median>100)',
+            style={
+                'fontFamily': 'Bodoni',
+                'textAlign': 'center',
+                'color': colors['title'],
+                'position': 'relative',
+                'top': '12px'
+            }
+        ),
+        html.Div(
+            id='median-table',
+            style={
+                'width': '25%',
+                'display': 'inline-block',
+            }
+        ),
+        html.Div([
+                dcc.Graph(
+                    id='search-graph',
+                    style={
+                        'height': '500px',
+                        'padding-bottom': '20px',
+                        'backgroundColor': colors['paper']
+                    },
+                    config={
+                        'displayModeBar': False
+                    }
+                )
+            ],
+            style={
+                'width': '80%',
+                'display': 'inline-block'
+            }
         ),
     ],
-        style={
-            'width': '60%',
-            'display': 'inline-block',
-            'padding-bottom': '20px'
-        }
-    ),
-
-    html.Div([
-            dcc.Graph(
-                id='search-graph',
-                style={
-                    'height': '500px',
-                    'padding-bottom': '20px',
-                    'backgroundColor': colors['paper']
-                },
-                config={
-                    'displayModeBar': False
-                }
-            )
-        ],
-        style={
-            'width': '60%',
-            'display': 'inline-block'
-        }
-    ),
-
-],
     style={
         'backgroundColor': colors['background'],
         'textAlign': 'center'
@@ -175,72 +245,46 @@ app.layout = html.Div([
 
 
 @app.callback(
-    Output('search-graph', 'figure'),
+    [Output('search-graph', 'figure'),
+     Output('median-table', 'children')],
     [Input('search-input-table', 'data'),
      Input('search-input-table', 'columns'),
      Input('comparison-toggle', 'value')]
 )
 def update_graph(rows, columns, compare):
     df = pd.DataFrame(rows, columns=[c['name'] for c in columns])
-    lines = {
-        'scenario920': {'1': [], '2': [], '3': []},
-        'scenario919': {'1': [], '2': [], '3': []}
-    }
-    for scenario in range(3):
-        try:
-            for i in range(0, 101):
-                lines['scenario920'][f'{scenario + 1}'].append(
-                    calculate_final_state(
-                        df.Level[scenario], df.Tier[scenario], df['Goal Copies'][scenario],
-                        df['Champ Owned'][scenario], df['Tier Owned'][scenario], i, '920'
-                    )
-                )
-        except IndexError:
-            lines['scenario920'][f'{scenario + 1}'] = [0] * 100
+    lines = {}
+    results = {}
+    lines['922'], results['922'] = iterate_calculations(df, '922')
     if compare:
-        for scenario in range(3):
-            try:
-                for i in range(0, 101):
-                    lines['scenario919'][f'{scenario + 1}'].append(
-                        calculate_final_state(
-                            df.Level[scenario], df.Tier[scenario], df['Goal Copies'][scenario],
-                            df['Champ Owned'][scenario], df['Tier Owned'][scenario], i, '919'
-                        )
-                    )
-            except IndexError:
-                lines['scenario919'][f'{scenario + 1}'] = [0] * 100
-    return {
+        lines['921'], results['921'] = iterate_calculations(df, '921')
+    else:
+        lines['921'], results['921'] = {'1': [0]*101, '2': [0]*101}, {'1': '-', '2': '-'}
+    graph = {
         'data': [
             go.Scatter(
                 x=list(range(101)),
-                y=lines['scenario919']['1'],
+                y=lines['921']['1'],
                 mode='lines',
                 line={
                     'color': line_colors[3]
                 },
-                name='9.19 A'
+                name='9.21 A',
+                visible=compare
             ),
             go.Scatter(
                 x=list(range(101)),
-                y=lines['scenario919']['2'],
+                y=lines['921']['2'],
                 mode='lines',
                 line={
                     'color': line_colors[4]
                 },
-                name='9.19 B'
+                name='9.21 B',
+                visible=compare
             ),
             go.Scatter(
                 x=list(range(101)),
-                y=lines['scenario919']['3'],
-                mode='lines',
-                line={
-                    'color': line_colors[5]
-                },
-                name='9.19 C'
-            ),
-            go.Scatter(
-                x=list(range(101)),
-                y=lines['scenario920']['1'],
+                y=lines['922']['1'],
                 mode='lines',
                 line={
                     'color': line_colors[0]
@@ -249,22 +293,13 @@ def update_graph(rows, columns, compare):
             ),
             go.Scatter(
                 x=list(range(101)),
-                y=lines['scenario920']['2'],
+                y=lines['922']['2'],
                 mode='lines',
                 line={
                     'color': line_colors[1]
                 },
                 name='B'
             ),
-            go.Scatter(
-                x=list(range(101)),
-                y=lines['scenario920']['3'],
-                mode='lines',
-                line={
-                    'color': line_colors[2]
-                },
-                name='C'
-            )
         ],
         'layout': go.Layout(
             title=(
@@ -317,6 +352,46 @@ def update_graph(rows, columns, compare):
             paper_bgcolor=colors['paper']
         )
     }
+    columns = ['Patch\Scenario', 'A', 'B']
+    table = dash_table.DataTable(
+        columns=[
+            {'name': f'{i}',
+             'id': f'{i}',
+             'editable': False}
+            for i in columns
+        ],
+        data=[
+            {
+                'Patch\Scenario': '9.22',
+                'A': results['922']['1'],
+                'B': results['922']['2']
+            },
+            {
+                'Patch\Scenario': '9.21',
+                'A': results['921']['1'],
+                'B': results['921']['2']
+            },
+        ],
+        editable=False,
+        style_header={
+            'fontWeight': 'bold'
+        },
+        style_cell={
+            'fontFamily': 'Garamond',
+            'backgroundColor': colors['paper'],
+            'color': colors['text'],
+            'textAlign': 'center'
+        },
+        style_cell_conditional=[
+            {'if': {'column_id': 'Patch\Scenario'},
+             'width': '40%'}
+        ],
+        css=[
+            {'selector': 'td.cell--selected, td.focused', 'rule': 'background-color: #192A35 !important;'},
+            {'selector': 'td.cell--selected *, td.focused *', 'rule': 'color: #FFFFFF !important;'}
+        ]
+    )
+    return graph, table
 
 
 if __name__ == '__main__':
