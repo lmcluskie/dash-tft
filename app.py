@@ -155,7 +155,7 @@ app.layout = html.Div([
                     'Level': {
                         'options': [
                             {'label': i, 'value': i}
-                            for i in range(1, 10)
+                            for i in range(2, 10)
                         ]
                     },
                     'Tier': {
