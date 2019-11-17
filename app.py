@@ -99,7 +99,7 @@ app.title = 'TFT Search Odds (9.22)'
 # app
 app.layout = html.Div([
         html.H1([
-            'TFT Search Odds'
+            'TFT Search Odds (9.22)'
             ],
             style={
                 'fontFamily': 'Bodoni',
