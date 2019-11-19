@@ -19,8 +19,8 @@ colors = {
 line_colors = ['#47D0E8', '#EF9A45', '#8DF279', '#006DDB', '#D16C00', '#477A3D']
 static_columns = ['Level', 'Tier', 'Copies Wanted']
 var_columns = ['Champ Copies Owned', 'Tier Copies Owned']
-patch_current = '923'
-patch_compare = '921'
+patch_current = '9.23'
+patch_compare = '9.21'
 levels = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 tiers = [1, 2, 3, 4, 5]
 
@@ -96,12 +96,12 @@ def iterate_calculations(df, patch):
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
-app.title = 'TFT Search Odds (9.22)'
+app.title = f'TFT Search Odds ({patch_current})'
 
 # app
 app.layout = html.Div([
         html.H1([
-            'TFT Search Odds (9.22)'
+            f'TFT Search Odds ({patch_current})'
             ],
             style={
                 'fontFamily': 'Bodoni',
@@ -194,7 +194,7 @@ app.layout = html.Div([
         html.Div([
                 daq.ToggleSwitch(
                     id='comparison-toggle',
-                    label='Compare to Patch 9.21 (Set 1)',
+                    label=f'Compare to Patch {patch_compare} (Set 1)',
                     labelPosition='top',
                     color=colors['cells'],
                     value=False
@@ -271,26 +271,6 @@ def update_graph(rows, columns, compare):
         'data': [
             go.Scatter(
                 x=list(range(101)),
-                y=lines[patch_compare]['1'],
-                mode='lines',
-                line={
-                    'color': line_colors[3]
-                },
-                name='9.21 A',
-                visible=compare
-            ),
-            go.Scatter(
-                x=list(range(101)),
-                y=lines[patch_compare]['2'],
-                mode='lines',
-                line={
-                    'color': line_colors[4]
-                },
-                name='9.21 B',
-                visible=compare
-            ),
-            go.Scatter(
-                x=list(range(101)),
                 y=lines[patch_current]['1'],
                 mode='lines',
                 line={
@@ -306,6 +286,26 @@ def update_graph(rows, columns, compare):
                     'color': line_colors[1]
                 },
                 name='B'
+            ),
+            go.Scatter(
+                x=list(range(101)),
+                y=lines[patch_compare]['1'],
+                mode='lines',
+                line={
+                    'color': line_colors[3]
+                },
+                name=f'{patch_compare} A',
+                visible=compare
+            ),
+            go.Scatter(
+                x=list(range(101)),
+                y=lines[patch_compare]['2'],
+                mode='lines',
+                line={
+                    'color': line_colors[4]
+                },
+                name=f'{patch_compare} B',
+                visible=compare
             ),
         ],
         'layout': go.Layout(
@@ -369,12 +369,12 @@ def update_graph(rows, columns, compare):
         ],
         data=[
             {
-                'Patch\Scenario': '9.22',
+                'Patch\Scenario': patch_current,
                 'A': results[patch_current]['1'],
                 'B': results[patch_current]['2']
             },
             {
-                'Patch\Scenario': '9.21',
+                'Patch\Scenario': patch_compare,
                 'A': results[patch_compare]['1'],
                 'B': results[patch_compare]['2']
             },
