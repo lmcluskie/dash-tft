@@ -19,23 +19,25 @@ colors = {
 line_colors = ['#47D0E8', '#EF9A45', '#8DF279', '#006DDB', '#D16C00', '#477A3D']
 static_columns = ['Level', 'Tier', 'Copies Wanted']
 var_columns = ['Champ Copies Owned', 'Tier Copies Owned']
+patch_current = '923'
+patch_compare = '921'
 levels = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 tiers = [1, 2, 3, 4, 5]
 
 uniques = {
-    '922': [12, 12, 12, 9, 6],
-    '921': [13, 13, 13, 10, 8]
+    patch_current: [12, 12, 12, 9, 6],
+    patch_compare: [13, 13, 13, 10, 8]
 }
 copies = {
-    '922': [29, 22, 16, 12, 10],
-    '921': [39, 26, 18, 13, 10]
+    patch_current: [29, 22, 16, 12, 10],
+    patch_compare: [39, 26, 18, 13, 10]
 }
 weights = {
-    '922':
+    patch_current:
         [[100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [70, 25, 5, 0, 0],
          [50, 35, 15, 0, 0], [35, 35, 25, 5, 0], [25, 35, 30, 10, 0],
          [20, 30, 33, 15, 2], [15, 20, 35, 24, 6], [10, 15, 30, 30, 15]],
-    '921':
+    patch_compare:
         [[100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [70, 25, 5, 0, 0],
          [50, 35, 15, 0, 0], [35, 35, 25, 5, 0], [25, 35, 30, 10, 0],
          [20, 30, 33, 15, 2], [15, 20, 35, 22, 8], [10, 15, 30, 30, 15]]
@@ -260,16 +262,16 @@ def update_graph(rows, columns, compare):
     df = pd.DataFrame(rows, columns=[c['name'] for c in columns])
     lines = {}
     results = {}
-    lines['922'], results['922'] = iterate_calculations(df, '922')
+    lines[patch_current], results[patch_current] = iterate_calculations(df, patch_current)
     if compare:
-        lines['921'], results['921'] = iterate_calculations(df, '921')
+        lines[patch_compare], results[patch_compare] = iterate_calculations(df, patch_compare)
     else:
-        lines['921'], results['921'] = {'1': [0]*101, '2': [0]*101}, {'1': '-', '2': '-'}
+        lines[patch_compare], results[patch_compare] = {'1': [0]*101, '2': [0]*101}, {'1': '-', '2': '-'}
     graph = {
         'data': [
             go.Scatter(
                 x=list(range(101)),
-                y=lines['921']['1'],
+                y=lines[patch_compare]['1'],
                 mode='lines',
                 line={
                     'color': line_colors[3]
@@ -279,7 +281,7 @@ def update_graph(rows, columns, compare):
             ),
             go.Scatter(
                 x=list(range(101)),
-                y=lines['921']['2'],
+                y=lines[patch_compare]['2'],
                 mode='lines',
                 line={
                     'color': line_colors[4]
@@ -289,7 +291,7 @@ def update_graph(rows, columns, compare):
             ),
             go.Scatter(
                 x=list(range(101)),
-                y=lines['922']['1'],
+                y=lines[patch_current]['1'],
                 mode='lines',
                 line={
                     'color': line_colors[0]
@@ -298,7 +300,7 @@ def update_graph(rows, columns, compare):
             ),
             go.Scatter(
                 x=list(range(101)),
-                y=lines['922']['2'],
+                y=lines[patch_current]['2'],
                 mode='lines',
                 line={
                     'color': line_colors[1]
@@ -368,13 +370,13 @@ def update_graph(rows, columns, compare):
         data=[
             {
                 'Patch\Scenario': '9.22',
-                'A': results['922']['1'],
-                'B': results['922']['2']
+                'A': results[patch_current]['1'],
+                'B': results[patch_current]['2']
             },
             {
                 'Patch\Scenario': '9.21',
-                'A': results['921']['1'],
-                'B': results['921']['2']
+                'A': results[patch_compare]['1'],
+                'B': results[patch_compare]['2']
             },
         ],
         editable=False,
