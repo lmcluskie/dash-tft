@@ -13,4 +13,4 @@
  For each scenario determined by the input an absorbing Markov chain is created. An initial state vector where the user is guaranteed to start with 0 copies is multiplied by this Markov chain raised to powers from 1-100 to find the likelihood of having reached the absorbing state (signalling objective success) after each roll from 1 to 100.
  
 
-Last updated 18/Nov/2019 (Patch 9.22)
+Last updated 20/Nov/2019 (Patch 9.23)
