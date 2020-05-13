@@ -19,13 +19,13 @@ colors = {
 line_colors = ['#47D0E8', '#EF9A45', '#8DF279', '#006DDB', '#D16C00', '#477A3D']
 static_columns = ['Level', 'Tier', 'Copies Wanted']
 var_columns = ['Champ Copies Owned', 'Tier Copies Owned']
-patch_current = '9.23'
+patch_current = '10.9'
 patch_compare = '9.21'
 levels = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 tiers = [1, 2, 3, 4, 5]
 
 uniques = {
-    patch_current: [12, 12, 12, 9, 6],
+    patch_current: [12, 12, 12, 9, 7],
     patch_compare: [13, 13, 13, 10, 8]
 }
 copies = {
@@ -34,9 +34,9 @@ copies = {
 }
 weights = {
     patch_current:
-        [[100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [70, 25, 5, 0, 0],
-         [50, 35, 15, 0, 0], [35, 35, 25, 5, 0], [25, 35, 30, 10, 0],
-         [20, 30, 33, 15, 2], [15, 20, 35, 24, 6], [10, 15, 30, 30, 15]],
+        [[100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [75, 25, 0, 0, 0],
+         [60, 30, 10, 0, 0], [40, 35, 20, 5, 0], [25, 35, 30, 10, 0],
+         [19, 30, 35, 15, 1], [14, 20, 35, 25, 6], [10, 15, 25, 35, 15]],
     patch_compare:
         [[100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [70, 25, 5, 0, 0],
          [50, 35, 15, 0, 0], [35, 35, 25, 5, 0], [25, 35, 30, 10, 0],
@@ -133,11 +133,11 @@ app.layout = html.Div([
                     for i in var_columns
                 ],
                 data=[
-                    {'Scenario': 'A', 'Level': 4, 'Tier': 1, 'Copies Wanted': 6,
-                     'Champ Copies Owned': 3, 'Tier Copies Owned': 40
+                    {'Scenario': 'A', 'Level': 4, 'Tier': 1, 'Copies Wanted': 5,
+                     'Champ Copies Owned': 6, 'Tier Copies Owned': 80
                      },
-                    {'Scenario': 'B', 'Level': 4, 'Tier': 1, 'Copies Wanted': 6,
-                     'Champ Copies Owned': 12, 'Tier Copies Owned': 40
+                    {'Scenario': 'B', 'Level': 4, 'Tier': 1, 'Copies Wanted': 5,
+                     'Champ Copies Owned': 13, 'Tier Copies Owned': 80
                     }
                 ],
                 dropdown={
@@ -209,7 +209,7 @@ app.layout = html.Div([
         ),
 
         html.H6(
-            'Median Rolls Required (will display chance of success at 100 rolls if median>100)',
+            'Median Rolls Required (Chance of success after 100 rolls if median > 100)',
             style={
                 'fontFamily': 'Bodoni',
                 'textAlign': 'center',
@@ -310,7 +310,7 @@ def update_graph(rows, columns, compare):
         ],
         'layout': go.Layout(
             title=(
-                f'Prob(Objective completed) vs Rolls '
+                f'Prob(Units Found) vs Rolls '
             ),
             titlefont={
                 'color': colors['title'],
@@ -328,7 +328,7 @@ def update_graph(rows, columns, compare):
                 'fixedrange': True
             },
             yaxis={
-                'title': 'Probability of objective completed',
+                'title': 'Probability all units found (%)',
                 'showline': True,
                 'linewidth': 2,
                 'linecolor': colors['text'],
@@ -359,7 +359,7 @@ def update_graph(rows, columns, compare):
             paper_bgcolor=colors['paper']
         )
     }
-    columns = ['Patch\Scenario', 'A', 'B']
+    columns = ['Patch↓ Scenario→', 'A', 'B']
     table = dash_table.DataTable(
         columns=[
             {'name': f'{i}',
@@ -369,12 +369,12 @@ def update_graph(rows, columns, compare):
         ],
         data=[
             {
-                'Patch\Scenario': patch_current,
+                'Patch↓ Scenario→': patch_current,
                 'A': results[patch_current]['1'],
                 'B': results[patch_current]['2']
             },
             {
-                'Patch\Scenario': patch_compare,
+                'Patch↓ Scenario→': patch_compare,
                 'A': results[patch_compare]['1'],
                 'B': results[patch_compare]['2']
             },
@@ -390,7 +390,7 @@ def update_graph(rows, columns, compare):
             'textAlign': 'center'
         },
         style_cell_conditional=[
-            {'if': {'column_id': 'Patch\Scenario'},
+            {'if': {'column_id': 'Patch↓ Scenario→'},
              'width': '40%'}
         ],
         css=[
