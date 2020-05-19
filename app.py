@@ -6,6 +6,7 @@ from dash.dependencies import Input, Output
 import numpy as np
 import pandas as pd
 import plotly.graph_objs as go
+from bisect import bisect
 
 # setup
 colors = {
@@ -21,22 +22,16 @@ var_columns = ['Champ Copies Owned', 'Tier Copies Owned']
 patch_current = '10.10'
 levels = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 tiers = [1, 2, 3, 4, 5]
-
-uniques = {
-    patch_current: [12, 12, 12, 9, 7]
-}
-copies = {
-    patch_current: [29, 22, 16, 12, 10]
-}
-weights = {
-    patch_current:
-        [[100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [75, 25, 0, 0, 0],
-         [60, 30, 10, 0, 0], [40, 35, 20, 5, 0], [25, 35, 30, 10, 0],
-         [19, 30, 35, 15, 1], [14, 20, 35, 25, 6], [10, 15, 25, 35, 15]],
-}
+uniques = [12, 12, 12, 9, 7]
+copies = [29, 22, 16, 12, 10]
+weights = [
+        [100, 0, 0, 0, 0], [100, 0, 0, 0, 0], [75, 25, 0, 0, 0],
+        [60, 30, 10, 0, 0], [40, 35, 20, 5, 0], [25, 35, 30, 10, 0],
+        [19, 30, 35, 15, 1], [14, 20, 35, 25, 6], [10, 15, 25, 35, 15]
+]
 
 
-def calculate_final_state(level, tier, goal, c_owned, t_owned, rolls, patch):
+def calculate_final_state(level, tier, goal, c_owned, t_owned, rolls):
     """Take in scenario parameters to produce the final state vector"""
     try:
         # initial state vector
@@ -44,11 +39,11 @@ def calculate_final_state(level, tier, goal, c_owned, t_owned, rolls, patch):
         start[0, 0] = 1
         # transition matrix on each slot
         m = np.zeros((goal + 1, goal + 1))
-        base_prob = weights[patch][level - 1][tier - 1] / 100
+        base_prob = weights[level - 1][tier - 1] / 100
         for i in range(goal):
-            if copies[patch][tier - 1] - c_owned > i:
-                prob = base_prob * (copies[patch][tier - 1] - c_owned - i) / (
-                            copies[patch][tier - 1] * uniques[patch][tier - 1] - t_owned - i)
+            if copies[tier - 1] - c_owned > i:
+                prob = base_prob * (copies[tier - 1] - c_owned - i) / (
+                            copies[tier - 1] * uniques[tier - 1] - t_owned - i)
             else:
                 prob = 0
             m[i, i] = 1 - prob
@@ -63,25 +58,26 @@ def calculate_final_state(level, tier, goal, c_owned, t_owned, rolls, patch):
         return 0
 
 
-def iterate_calculations(df, patch):
+def iterate_calculations(df):
     probabilities = {'1': [], '2': []}
-    medians = {'1': [], '2': []}
+    percentiles = {'1': [], '2': []}
     for scenario in range(2):
         try:
             for i in range(0, 101):
                 prob = calculate_final_state(
                     df.Level[scenario], df.Tier[scenario], df['Copies Wanted'][scenario],
-                    df['Champ Copies Owned'][scenario], df['Tier Copies Owned'][scenario], i, patch
+                    df['Champ Copies Owned'][scenario], df['Tier Copies Owned'][scenario], i
                 )
                 probabilities[f'{scenario + 1}'].append(prob)
-                if not medians[f'{scenario + 1}']:
-                    if prob >= 0.5:
-                        medians[f'{scenario + 1}'] = i
-                    elif i == 100:
-                        medians[f'{scenario + 1}'] = '>100'
         except IndexError:
             probabilities[f'{scenario + 1}'] = [0] * 100
-    return probabilities, medians
+    percentiles['1'].extend((bisect(probabilities['1'], 0.1)+1, bisect(probabilities['1'], 0.5)+1, bisect(probabilities['1'], 0.9)+1))
+    percentiles['2'].extend((bisect(probabilities['2'], 0.1)+1, bisect(probabilities['2'], 0.5)+1, bisect(probabilities['2'], 0.9)+1))
+    prob_increase = {
+        '1': [t - s for s, t in zip(probabilities['1'], probabilities['1'][1:])],
+        '2': [t - s for s, t in zip(probabilities['2'], probabilities['2'][1:])]
+    }
+    return prob_increase, probabilities, percentiles
 
 
 # initiate
@@ -184,7 +180,7 @@ app.layout = html.Div([
         ),
 
         html.H6(
-            'Median Rolls Required',
+            'Rolls Required',
             style={
                 'fontFamily': 'Bodoni',
                 'textAlign': 'center',
@@ -194,7 +190,7 @@ app.layout = html.Div([
             }
         ),
         html.Div(
-            id='median-table',
+            id='percentile-table',
             style={
                 'width': '500px',
                 'display': 'inline-block',
@@ -228,34 +224,60 @@ app.layout = html.Div([
 
 @app.callback(
     [Output('search-graph', 'figure'),
-     Output('median-table', 'children')],
+     Output('percentile-table', 'children')],
     [Input('search-input-table', 'data'),
      Input('search-input-table', 'columns')]
 )
 def update_graph(rows, columns):
     df = pd.DataFrame(rows, columns=[c['name'] for c in columns])
-    lines = {}
-    results = {}
-    lines[patch_current], results[patch_current] = iterate_calculations(df, patch_current)
+    pdf, cdf, percentile = iterate_calculations(df)
     graph = {
         'data': [
             go.Scatter(
                 x=list(range(101)),
-                y=lines[patch_current]['1'],
+                y=pdf['1'],
                 mode='lines',
                 line={
-                    'color': line_colors[0]
+                    'color': line_colors[0],
+                    'shape': 'hv'
                 },
-                name='A'
+                name='Scenario A',
+                fill='tozeroy'
             ),
             go.Scatter(
                 x=list(range(101)),
-                y=lines[patch_current]['2'],
+                y=pdf['2'],
                 mode='lines',
                 line={
-                    'color': line_colors[1]
+                    'color': line_colors[1],
+                    'shape': 'hv'
                 },
-                name='B'
+                name='Scenario B',
+                fill='tozeroy'
+            ),
+            go.Scatter(
+                x=list(range(101)),
+                y=cdf['1'],
+                mode='lines',
+                line={
+                    'color': line_colors[0],
+                    'shape': 'hv'
+                },
+                name='Scenario A Cumulative',
+                fill='tozeroy',
+                visible=False
+            ),
+            go.Scatter(
+                x=list(range(101)),
+                y=cdf['2'],
+                mode='lines',
+                line={
+                    'color': line_colors[1],
+                    'shape': 'hv'
+                },
+                name='Scenario B Cumulative',
+                fill='tozeroy',
+                visible=False
             )
         ],
         'layout': go.Layout(
@@ -285,7 +307,6 @@ def update_graph(rows, columns):
                 'showgrid': True,
                 'gridwidth': 1,
                 'gridcolor': colors['text'],
-                'range': [0, 1],
                 'hoverformat': '.2f',
                 'fixedrange': True
             },
@@ -306,10 +327,30 @@ def update_graph(rows, columns):
                 pad=3
             ),
             plot_bgcolor=colors['paper'],
-            paper_bgcolor=colors['paper']
+            paper_bgcolor=colors['paper'],
+            updatemenus=[
+                go.layout.Updatemenu(
+                    buttons=list([
+                        dict(
+                            args=[{"visible": [True] * 2 + [False] * 2}],
+                            label="PDF",
+                            method="update"
+                        ),
+                        dict(
+                            args=[{"visible": [False] * 2 + [True] * 2}],
+                            label="CDF",
+                            method="update"
+                        )
+                    ]),
+                    type="buttons",
+                    direction="right",
+                    x=1,
+                    y=1
+                )
+            ]
         )
     }
-    columns = ['Scenario', 'Rolls']
+    columns = ['Scenario', 'High Roll (10%)', 'Median (50%)', 'Low Roll (90%)']
     table = dash_table.DataTable(
         columns=[
             {'name': f'{i}',
@@ -320,11 +361,15 @@ def update_graph(rows, columns):
         data=[
             {
                 'Scenario': 'A',
-                'Rolls': results[patch_current]['1']
+                'High Roll (10%)': percentile['1'][0],
+                'Median (50%)': percentile['1'][1],
+                'Low Roll (90%)': percentile['1'][2]
             },
             {
                 'Scenario': 'B',
-                'Rolls': results[patch_current]['2']
+                'High Roll (10%)': percentile['2'][0],
+                'Median (50%)': percentile['2'][1],
+                'Low Roll (90%)': percentile['2'][2]
             }
         ],
         editable=False,
