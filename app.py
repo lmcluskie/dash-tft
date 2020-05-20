@@ -71,8 +71,8 @@ def iterate_calculations(df):
                 probabilities[f'{scenario + 1}'].append(prob)
         except IndexError:
             probabilities[f'{scenario + 1}'] = [0] * 100
-    percentiles['1'].extend((bisect(probabilities['1'], 0.1)+1, bisect(probabilities['1'], 0.5)+1, bisect(probabilities['1'], 0.9)+1))
-    percentiles['2'].extend((bisect(probabilities['2'], 0.1)+1, bisect(probabilities['2'], 0.5)+1, bisect(probabilities['2'], 0.9)+1))
+    percentiles['1'].extend((bisect(probabilities['1'], 0.1), bisect(probabilities['1'], 0.5), bisect(probabilities['1'], 0.9)))
+    percentiles['2'].extend((bisect(probabilities['2'], 0.1), bisect(probabilities['2'], 0.5), bisect(probabilities['2'], 0.9)))
     prob_increase = {
         '1': [t - s for s, t in zip(probabilities['1'], probabilities['1'][1:])],
         '2': [t - s for s, t in zip(probabilities['2'], probabilities['2'][1:])]
@@ -401,15 +401,15 @@ def update_graph(rows, columns):
         data=[
             {
                 'Scenario': 'A',
-                '10% (High Roll)': percentile['1'][0],
-                '50% (Median)': percentile['1'][1],
-                '90% (Low Roll)': percentile['1'][2]
+                '10% (High Roll)': '>100' if percentile['1'][0] >100 else percentile['1'][0],
+                '50% (Median)': '>100' if percentile['1'][1] >100 else percentile['1'][1],
+                '90% (Low Roll)': '>100' if percentile['1'][2] >100 else percentile['1'][2]
             },
             {
                 'Scenario': 'B',
-                '10% (High Roll)': percentile['2'][0],
-                '50% (Median)': percentile['2'][1],
-                '90% (Low Roll)': percentile['2'][2]
+                '10% (High Roll)': '>100' if percentile['2'][0] >100 else percentile['2'][0],
+                '50% (Median)': '>100' if percentile['2'][1] >100 else percentile['2'][1],
+                '90% (Low Roll)': '>100' if percentile['2'][2] >100 else percentile['2'][2]
             }
         ],
         editable=False,
