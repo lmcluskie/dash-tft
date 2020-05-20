@@ -18,7 +18,7 @@ colors = {
 }
 line_colors = ['#47D0E8', '#EF9A45', '#8DF279', '#006DDB', '#D16C00', '#477A3D']
 static_columns = ['Level', 'Tier', 'Copies Wanted']
-var_columns = ['Champ Copies Owned', 'Tier Copies Owned']
+var_columns = ['Unit Copies Owned', 'Tier Copies Owned']
 patch_current = '10.10'
 levels = [1, 2, 3, 4, 5, 6, 7, 8, 9]
 tiers = [1, 2, 3, 4, 5]
@@ -66,7 +66,7 @@ def iterate_calculations(df):
             for i in range(0, 101):
                 prob = calculate_final_state(
                     df.Level[scenario], df.Tier[scenario], df['Copies Wanted'][scenario],
-                    df['Champ Copies Owned'][scenario], df['Tier Copies Owned'][scenario], i
+                    df['Unit Copies Owned'][scenario], df['Tier Copies Owned'][scenario], i
                 )
                 probabilities[f'{scenario + 1}'].append(prob)
         except IndexError:
@@ -84,21 +84,60 @@ def iterate_calculations(df):
 external_stylesheets = ['https://codepen.io/chriddyp/pen/bWLwgP.css']
 app = dash.Dash(__name__, external_stylesheets=external_stylesheets)
 server = app.server
-app.title = f'TFT Search Odds ({patch_current})'
+app.title = f'Interactive TFT Shop Calculator ({patch_current})'
 
 # app
 app.layout = html.Div([
         html.H1([
-            f'TFT Search Odds ({patch_current})'
+            f'{app.title}'
             ],
             style={
                 'fontFamily': 'Bodoni',
                 'textAlign': 'center',
                 'color': colors['title'],
-                'padding-top': '20px'
+                'padding-top': '10px'
             }
         ),
-
+                html.Div(
+            'Level: Level the rolls take place at',
+            style={
+                'fontFamily': 'Bodoni',
+                'textAlign': 'center',
+                'color': colors['title']
+            }
+        ),
+        html.Div(
+            'Tier: The tier of the unit you want to find',
+            style={
+                'fontFamily': 'Bodoni',
+                'textAlign': 'center',
+                'color': colors['title']
+            }
+        ),
+        html.Div(
+            'Copies Wanted: How many copies of the unit you want to find',
+            style={
+                'fontFamily': 'Bodoni',
+                'textAlign': 'center',
+                'color': colors['title']
+            }
+        ),
+        html.Div(
+            'Unit Copies Owned: How many copies of the unit being searched for are owned by all players combined',
+            style={
+                'fontFamily': 'Bodoni',
+                'textAlign': 'center',
+                'color': colors['title']
+            }
+        ),
+        html.Div(
+            'Tier Copies Owned: How many copies of all units in the relevant tier are owned by all players combined',
+            style={
+                'fontFamily': 'Bodoni',
+                'textAlign': 'center',
+                'color': colors['title']
+            }
+        ),
         html.Div([
             dash_table.DataTable(
                 id='search-input-table',
@@ -122,10 +161,10 @@ app.layout = html.Div([
                 ],
                 data=[
                     {'Scenario': 'A', 'Level': 4, 'Tier': 1, 'Copies Wanted': 5,
-                     'Champ Copies Owned': 6, 'Tier Copies Owned': 80
+                     'Unit Copies Owned': 6, 'Tier Copies Owned': 80
                      },
                     {'Scenario': 'B', 'Level': 4, 'Tier': 1, 'Copies Wanted': 5,
-                     'Champ Copies Owned': 13, 'Tier Copies Owned': 80
+                     'Unit Copies Owned': 13, 'Tier Copies Owned': 80
                     }
                 ],
                 dropdown={
@@ -177,16 +216,15 @@ app.layout = html.Div([
                 'width': '800px',
                 'display': 'inline-block',
             }
-        ),
-
+        ),        
         html.H6(
-            'Rolls Required',
+            'Rolls Required for Success Chance',
             style={
                 'fontFamily': 'Bodoni',
                 'textAlign': 'center',
                 'color': colors['title'],
                 'position': 'relative',
-                'top': '12px'
+                'top': '10px'
             }
         ),
         html.Div(
@@ -194,13 +232,15 @@ app.layout = html.Div([
             style={
                 'width': '500px',
                 'display': 'inline-block',
+                'position': 'relative',
+                'top': '-10px'
             }
         ),
         html.Div([
                 dcc.Graph(
                     id='search-graph',
                     style={
-                        'height': '500px',
+                        'height': '450px',
                         'padding-bottom': '20px',
                         'backgroundColor': colors['paper']
                     },
@@ -322,8 +362,8 @@ def update_graph(rows, columns):
             margin=go.layout.Margin(
                 l=80,
                 r=60,
-                b=60,
-                t=80,
+                b=40,
+                t=40,
                 pad=3
             ),
             plot_bgcolor=colors['paper'],
@@ -350,7 +390,7 @@ def update_graph(rows, columns):
             ]
         )
     }
-    columns = ['Scenario', 'High Roll (10%)', 'Median (50%)', 'Low Roll (90%)']
+    columns = ['Scenario', '10% (High Roll)', '50% (Median)', '90% (Low Roll)']
     table = dash_table.DataTable(
         columns=[
             {'name': f'{i}',
@@ -361,15 +401,15 @@ def update_graph(rows, columns):
         data=[
             {
                 'Scenario': 'A',
-                'High Roll (10%)': percentile['1'][0],
-                'Median (50%)': percentile['1'][1],
-                'Low Roll (90%)': percentile['1'][2]
+                '10% (High Roll)': percentile['1'][0],
+                '50% (Median)': percentile['1'][1],
+                '90% (Low Roll)': percentile['1'][2]
             },
             {
                 'Scenario': 'B',
-                'High Roll (10%)': percentile['2'][0],
-                'Median (50%)': percentile['2'][1],
-                'Low Roll (90%)': percentile['2'][2]
+                '10% (High Roll)': percentile['2'][0],
+                '50% (Median)': percentile['2'][1],
+                '90% (Low Roll)': percentile['2'][2]
             }
         ],
         editable=False,
